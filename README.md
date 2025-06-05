@@ -1,18 +1,20 @@
 # 📊 Data Ingestion API
 
-A Node.js-based asynchronous batching system with rate-limited processing, built using Express, MongoDB, and Mongoose. It supports **priority-based ingestion**, batch processing (max 3 IDs per batch), and **1 batch per 5 seconds** execution constraint.
+A Node.js-based asynchronous batching system with **priority-based ingestion** and **rate-limited processing**, built using Express, MongoDB, and Mongoose.
 
 ---
 
 ## 🧠 Features
 
-- RESTful API for submitting ingestion requests and checking their status.
-- Process data in **batches of 3 IDs** at a time.
-- **Rate limit:** Only **1 batch per 5 seconds**.
-- Priority-based queueing: `HIGH` > `MEDIUM` > `LOW`
-- Tracks each batch’s processing state: `yet_to_start`, `triggered`, `completed`.
-- Uses MongoDB for persistence.
-- Clean ES6 codebase structure inside `src/` directory.
+- RESTful API for submitting ingestion requests and tracking their status.
+- **Batches process up to 3 IDs** at a time.
+- **Rate limit:** Only **1 batch every 5 seconds**.
+- **Priority queue**: HIGH > MEDIUM > LOW.
+- Jobs are dequeued based on **priority and creation time**.
+- Tracks each batch's processing status: yet_to_start, triggered, completed.
+- **Shared batching**: A batch may contain IDs from multiple ingestion requests.
+- MongoDB-based persistence using Mongoose.
+- Clean modular ES6 codebase inside src/ directory.
 
 ---
 
@@ -25,31 +27,101 @@ git clone https://github.com/Baibhav-malaviya/loop-ai-project1.git
 cd loop-ai-project1
 ```
 
-## 🌐 Live URL
+### 2. Install dependencies
 
-**Base URL:**  
-[https://loop-ai-project1.onrender.com](https://loop-ai-project1.onrender.com)
+```bash
+npm install
+```
+
+### 3. Start the server
+
+```bash
+npm start
+```
+
+---
+
+## 🌐 Live Deployment
+
+**Base URL:** https://loop-ai-project1.onrender.com
 
 ---
 
 ## 📬 API Endpoints
 
-### 1. `POST /ingest`
+### 🔹 `POST /ingest`
 
-- Accepts an array of IDs and a priority level.
-- Returns a unique `ingestion_id`.
+Submit a list of IDs to be processed.
 
-### 2. `GET /status/:ingestion_id`
+**Request Body:**
 
-- Returns overall status and batch-wise progress of a submission.
+```json
+{
+	"ids": [1, 2, 3, 4, 5],
+	"priority": "HIGH"
+}
+```
+
+**Response:**
+
+```json
+{
+	"ingestion_id": "abc123"
+}
+```
+
+### 🔹 `GET /status/:ingestion_id`
+
+Retrieve the status of batches related to a specific ingestion request.
+
+**Response:**
+
+```json
+{
+	"ingestion_id": "abc123",
+	"status": "triggered",
+	"batches": [
+		{
+			"batch_id": "uuid1",
+			"ids": [1, 2, 3],
+			"status": "completed"
+		},
+		{
+			"batch_id": "uuid2",
+			"ids": [4, 5],
+			"status": "triggered"
+		}
+	]
+}
+```
 
 ---
 
-## 🛠 Stack
+## 🛠 Tech Stack
 
 - Node.js (ES6)
-- Express
+- Express.js
 - MongoDB + Mongoose
-- UUID for ID generation
+- UUID (for unique ID generation)
 
 ---
+
+## 📁 Project Structure
+
+```
+src/
+├── models/     # Mongoose schemas (Ingestion, Batch)
+├── routes/     # Express routes (ingest, status)
+├── utils/      # Priority queue logic
+├── processor/  # Batch processor logic
+├── index.js    # Entry point
+```
+
+---
+
+## 📌 Notes
+
+- Batches are built **from a single queue**, sorted by `(priority, created_at)`.
+- **Max 3 jobs** per batch, respecting the **5-second rule**.
+- **Dynamic batching**: IDs from newer high-priority requests may be processed before older lower-priority ones.
+- Every batch logs status in the database and can be tracked via the `/status/:ingestion_id` endpoint.
