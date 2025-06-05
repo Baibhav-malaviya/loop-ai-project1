@@ -1,26 +1,39 @@
-const queue = [];
+import { v4 as uuidv4 } from "uuid";
+import Batch from "../models/batch.js";
 
-function enqueue(batch) {
-	queue.push(batch);
-	queue.sort((a, b) => {
-		const priorityMap = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-		return (
-			priorityMap[a.priority] - priorityMap[b.priority] ||
-			new Date(a.created_at) - new Date(b.created_at)
-		);
+const jobQueue = [];
+const priorityMap = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+
+function enqueueJob(job) {
+	jobQueue.push(job);
+	jobQueue.sort((a, b) => {
+		const priorityDiff = priorityMap[a.priority] - priorityMap[b.priority];
+		return priorityDiff !== 0
+			? priorityDiff
+			: new Date(a.created_at) - new Date(b.created_at);
 	});
 }
 
-function dequeue() {
-	return queue.shift();
-}
+async function dequeueBatch(limit = 3) {
+	if (jobQueue.length === 0) return null;
 
-function peek() {
-	return queue[0];
+	const jobs = jobQueue.splice(0, limit);
+	const ids = jobs.map((job) => job.id);
+	const ingestion_ids = [...new Set(jobs.map((job) => job.ingestion_id))];
+
+	const batch = new Batch({
+		batch_id: uuidv4(),
+		ids,
+		ingestion_ids,
+		status: "yet_to_start",
+	});
+
+	await batch.save();
+	return batch;
 }
 
 function isEmpty() {
-	return queue.length === 0;
+	return jobQueue.length === 0;
 }
 
-export { enqueue, dequeue, peek, isEmpty };
+export { enqueueJob, dequeueBatch, isEmpty };

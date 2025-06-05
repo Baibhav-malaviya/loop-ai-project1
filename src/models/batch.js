@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
 const batchSchema = new mongoose.Schema({
-	ingestion_id: String,
 	batch_id: String,
 	ids: [Number],
+	ingestion_ids: [String], // multiple ingestion IDs possible per batch
 	status: {
 		type: String,
 		enum: ["yet_to_start", "triggered", "completed"],

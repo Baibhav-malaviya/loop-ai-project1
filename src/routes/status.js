@@ -5,7 +5,8 @@ const router = express.Router();
 
 router.get("/status/:ingestion_id", async (req, res) => {
 	const { ingestion_id } = req.params;
-	const batches = await Batch.find({ ingestion_id });
+
+	const batches = await Batch.find({ ingestion_ids: ingestion_id });
 
 	if (!batches.length) {
 		return res.status(404).json({ error: "Ingestion ID not found" });

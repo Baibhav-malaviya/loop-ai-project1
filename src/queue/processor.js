@@ -1,4 +1,4 @@
-import { dequeue, isEmpty } from "../utils/priorityQueue.js";
+import { dequeueBatch, isEmpty } from "../utils/priorityQueue.js";
 import Batch from "../models/batch.js";
 
 function simulateFetch(id) {
@@ -8,27 +8,26 @@ function simulateFetch(id) {
 }
 
 async function processBatch(batch) {
-	console.log(`Triggering batch: ${batch.batch_id}`);
 	await Batch.findOneAndUpdate(
 		{ batch_id: batch.batch_id },
 		{ status: "triggered" }
 	);
 
-	// for parallel/asynchronous execution
-	await Promise.all(batch.ids.map((id) => simulateFetch(id)));
+	await Promise.all(batch.ids.map(simulateFetch));
 
 	await Batch.findOneAndUpdate(
 		{ batch_id: batch.batch_id },
 		{ status: "completed" }
 	);
-	console.log(`Completed batch: ${batch.batch_id}`);
+
+	console.log(`Processed batch ${batch.batch_id}:`, batch.ids);
 }
 
 function startQueueProcessor() {
 	setInterval(async () => {
 		if (!isEmpty()) {
-			const batch = dequeue();
-			await processBatch(batch);
+			const batch = await dequeueBatch(3);
+			if (batch) await processBatch(batch);
 		}
 	}, 5000);
 }
