@@ -14,6 +14,7 @@ async function processBatch(batch) {
 		{ status: "triggered" }
 	);
 
+	// for parallel/asynchronous execution
 	await Promise.all(batch.ids.map((id) => simulateFetch(id)));
 
 	await Batch.findOneAndUpdate(
